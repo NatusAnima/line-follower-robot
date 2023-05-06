@@ -22,8 +22,15 @@ QTRSensorsRC qtrA((char[]) {SENSOR1_PIN, SENSOR2_PIN, SENSOR3_PIN, SENSOR4_PIN, 
  
 void setup()
 {
-  // optional: wait for some input from the user, such as  a button press
- 
+  //Setup Channel A
+  pinMode(12, OUTPUT); //Initiates Motor Channel A pin
+  pinMode(9, OUTPUT); //Initiates Brake Channel A pin
+
+  //Setup Channel B
+  pinMode(13, OUTPUT); //Initiates Motor Channel A pin
+  pinMode(8, OUTPUT);  //Initiates Brake Channel A pin
+
+
   // then start calibration phase and move the sensors over both
   // reflectance extremes they will encounter in your application:
   for (int i = 0; i < 250; i++)  // make the calibration take about 5 seconds
@@ -97,4 +104,16 @@ void loop()
   leftMotorSpeed = 255;
   rightMotorSpeed = 255;
 }
+
+  //Motor A forward @ full speed
+  digitalWrite(12, HIGH);  //Establishes forward direction of Channel A
+  digitalWrite(9, LOW);   //Disengage the Brake for Channel A
+  analogWrite(3, rightMotorSpeed);    //Spins the motor on Channel A at half speed
+  
+  //Motor B forward @ full speed
+  digitalWrite(13, HIGH); //Establishes forward direction of Channel B
+  digitalWrite(8, LOW);   //Disengage the Brake for Channel B
+  analogWrite(11, leftMotorSpeed);   //Spins the motor on Channel B at full speed
+  
+
 }
