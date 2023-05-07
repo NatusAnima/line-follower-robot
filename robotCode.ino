@@ -11,9 +11,6 @@
 #define SENSOR7_PIN A6
 #define SENSOR8_PIN A7
 
-
-#include <QTRSensors.h>
-
 #define NUM_SENSORS 8  // number of sensors used
 
 // create an instance of the QTRSensor object
