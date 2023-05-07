@@ -14,11 +14,10 @@
 
 #include <QTRSensors.h>
 
-#define NUM_SENSORS   8  // number of sensors used
+#define NUM_SENSORS 8  // number of sensors used
 
 // create an instance of the QTRSensor object
-QTRSensorsRC qtrA((char[]) {SENSOR1_PIN, SENSOR2_PIN, SENSOR3_PIN, SENSOR4_PIN, SENSOR5_PIN, SENSOR6_PIN, SENSOR7_PIN, SENSOR8_PIN}, 
-                   NUM_SENSORS);
+QTRSensorsRC qtrA((unsigned char[]) {SENSOR1_PIN, SENSOR2_PIN, SENSOR3_PIN, SENSOR4_PIN, SENSOR5_PIN, SENSOR6_PIN, SENSOR7_PIN, SENSOR8_PIN}, NUM_SENSORS);
  
 void setup()
 {
