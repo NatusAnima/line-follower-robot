@@ -1,15 +1,29 @@
 #include <QTRSensors.h>
  
 
- // the pins for each sensor
+ // the pins for each ir sensor
 #define SENSOR1_PIN A0
 #define SENSOR2_PIN A1
 #define SENSOR3_PIN A2
 #define SENSOR4_PIN A3
 #define SENSOR5_PIN A4
 #define SENSOR6_PIN A5
-#define SENSOR7_PIN A6
-#define SENSOR8_PIN A7
+#define SENSOR7_PIN 11
+#define SENSOR8_PIN 3
+
+#define SENSOR_9960 5 // sensor ADPS-9960
+
+// Ultrasonic
+#define TRIG_PIN 6
+#define ECHO_PIN 7
+
+// RGB
+#define RGB_B 0
+#define RGB_G 2
+#define RGB_R 1
+
+#define SWITCH 10 // digital switch
+
 
 QTRSensors qtr;
 
