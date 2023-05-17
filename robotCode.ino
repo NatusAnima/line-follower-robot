@@ -2,23 +2,23 @@
 #include <SparkFun_APDS9960.h>
 
 // the pins for each ir sensor
-#define SENSOR1_PIN A5
-#define SENSOR2_PIN A4
-#define SENSOR3_PIN A3
-#define SENSOR4_PIN A2
-#define SENSOR5_PIN A1
-#define SENSOR6_PIN A0
+#define SENSOR1_PIN A0
+#define SENSOR2_PIN A1
+#define SENSOR3_PIN A2
+#define SENSOR4_PIN A3
+#define SENSOR5_PIN A4
+#define SENSOR6_PIN A5
 
-#define SENSOR_9960 5  // sensor ADPS-9960
+#define SENSOR_9960 2  // sensor ADPS-9960
 
 // Ultrasonic
 #define TRIGGER_PIN 4
-#define ECHO_PIN 7
+#define ECHO_PIN 5
 
 // RGB
-// #define RGB_B D5
-// #define RGB_G 1 //D6 and D5 apparently dont exist? i have no idea how to fix this
-// #define RGB_R D6
+#define RGB_B 7
+#define RGB_G 1  //D6 and D5 apparently dont exist? i have no idea how to fix this
+#define RGB_R 6
 
 
 uint16_t ambient_light = 0;
@@ -34,7 +34,6 @@ NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);  // NewPing setup of pins an
 SparkFun_APDS9960 apds = SparkFun_APDS9960();
 
 const uint8_t SensorCount = 6;
-uint16_t sensorValues[SensorCount];
 
 int leftMotorSpeed = 0;
 int rightMotorSpeed = 0;
@@ -42,18 +41,31 @@ int rightMotorSpeed = 0;
 int lastSeenBlackLine = 0;
 int currentPositionWeight = 0;
 
-const int sensorPins[] = { SENSOR1_PIN, SENSOR2_PIN, SENSOR3_PIN, SENSOR4_PIN, SENSOR5_PIN, SENSOR6_PIN };
-
 void setup() {
-  //Setup RGB
-  // pinMode(RGB_B, OUTPUT);
-  // pinMode(RGB_G, OUTPUT);
-  // pinMode(RGB_R, OUTPUT);
-  apds.init();
-  apds.enableLightSensor(false);
+
+  Serial.begin(9600);
+  Serial.println("We are here");
+  // Setup RGB
+  pinMode(RGB_B, OUTPUT);
+  pinMode(RGB_G, OUTPUT);
+  pinMode(RGB_R, OUTPUT);
+
+  //APDS Setup, Color Sensor
+  // apds.init();
 
   //Switch
-  pinMode(10, INPUT);
+  pinMode(SWITCH, INPUT);
+
+
+  //
+  pinMode(SENSOR1_PIN, INPUT);
+  pinMode(SENSOR2_PIN, INPUT);
+  pinMode(SENSOR3_PIN, INPUT);
+  pinMode(SENSOR4_PIN, INPUT);
+  pinMode(SENSOR5_PIN, INPUT);
+  pinMode(SENSOR6_PIN, INPUT);
+
+
 
   //Setup Channel A
   pinMode(12, OUTPUT);  //Initiates Motor Channel A pin
@@ -65,25 +77,28 @@ void setup() {
 
   digitalWrite(8, HIGH);  //Engage the Brake for Channel A
   digitalWrite(9, HIGH);  //Engage the Brake for Channel B
-
-  Serial.begin(9600);
 }
 
 void loop() {
 
+  //Raw Values
+  Serial.print(digitalRead(SENSOR1_PIN));
+  Serial.print('\t');
 
+  Serial.print(digitalRead(SENSOR2_PIN));
+  Serial.print('\t');
 
+  Serial.print(digitalRead(SENSOR3_PIN));
+  Serial.print('\t');
 
-  //Checking sensor values and print them to console
-  for (int i = 0; i < SensorCount; i++) {
-    sensorValues[i] = digitalRead(sensorPins[i]);
-  }
+  Serial.print(digitalRead(SENSOR4_PIN));
+  Serial.print('\t');
 
-  for (int i = 0; i < SensorCount; i++) {
-    Serial.print(sensorValues[i]);
-    Serial.print('\t');
-  }
-  Serial.println();
+  Serial.print(digitalRead(SENSOR5_PIN));
+  Serial.print('\t');
+
+  Serial.print(digitalRead(SENSOR6_PIN));
+  Serial.println('\t');
 
 
 
@@ -100,15 +115,14 @@ void loop() {
       currentPositionWeight = calculatePositionWeight();
       currentPosition = map(currentPositionWeight, -6, 6, -255, 255);
 
-      if (linePosition < 0){
+      if (currentPosition < 0) {
         rightMotorSpeed = rightMotorSpeed + currentPosition;
         leftMotorSpeed = leftMotorSpeed - currentPosition;
       }
-      if (linePosition > 0){
+      if (currentPosition > 0) {
         rightMotorSpeed = rightMotorSpeed - currentPosition;
         leftMotorSpeed = leftMotorSpeed + currentPosition;
-      }
-      else{
+      } else {
         rightMotorSpeed = 255;
         leftMotorSpeed = 255;
       }
@@ -153,7 +167,7 @@ void disengageBrakes() {
   digitalWrite(9, LOW);  //Disengage the Brake for Channel B
 }
 
-void calculatePositionWeight() {
+int calculatePositionWeight() {
   currentPositionWeight = ((-3) * (SENSOR1_PIN) + (-2) * (SENSOR2_PIN) + (-1) * (SENSOR3_PIN) + (1) * (SENSOR4_PIN) + (2) * (SENSOR5_PIN) + (3) * (SENSOR6_PIN));
   if (currentPositionWeight == 0) {
     return lastSeenBlackLine;
