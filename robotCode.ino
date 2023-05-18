@@ -1,5 +1,6 @@
 #include <NewPing.h>
 #include <SparkFun_APDS9960.h>
+#include <Wire.h>
 
 // the pins for each ir sensor
 #define SENSOR1_PIN A0
@@ -9,24 +10,24 @@
 #define SENSOR5_PIN A4
 #define SENSOR6_PIN A5
 
-#define SENSOR_9960 2  // sensor ADPS-9960
-
 // Ultrasonic
 #define TRIGGER_PIN 4
-#define ECHO_PIN 5
+#define ECHO_PIN 10
 
-// RGB
-#define RGB_B 7
-#define RGB_G 1  //D6 and D5 apparently dont exist? i have no idea how to fix this
-#define RGB_R 6
+// // RGB
+// #define RGB_B 7
+// #define RGB_G 1
+// #define RGB_R 6
 
+//Sonar Distance
+int distance = 0;
 
 uint16_t ambient_light = 0;
 uint16_t red_light = 0;
 uint16_t green_light = 0;
 uint16_t blue_light = 0;
 
-#define SWITCH 10  // digital switch
+#define SWITCH 7  // digital switch
 
 #define MAX_DISTANCE 200  // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
 
@@ -44,14 +45,20 @@ int currentPositionWeight = 0;
 void setup() {
 
   Serial.begin(9600);
-  Serial.println("We are here");
-  // Setup RGB
-  pinMode(RGB_B, OUTPUT);
-  pinMode(RGB_G, OUTPUT);
-  pinMode(RGB_R, OUTPUT);
+  Serial.println("Starting Setup: ");
 
-  //APDS Setup, Color Sensor
-  // apds.init();
+  if (apds.init()) {
+    Serial.println(F("APDS-9960 initialization complete"));
+  } else {
+    Serial.println(F("Something went wrong during APDS-9960 init!"));
+  }
+
+  // Start running the APDS-9960 light sensor (no interrupts)
+  if (apds.enableLightSensor(false)) {
+    Serial.println(F("Light sensor is now running"));
+  } else {
+    Serial.println(F("Something went wrong during light sensor init!"));
+  }
 
   //Switch
   pinMode(SWITCH, INPUT);
@@ -77,11 +84,116 @@ void setup() {
 
   digitalWrite(8, HIGH);  //Engage the Brake for Channel A
   digitalWrite(9, HIGH);  //Engage the Brake for Channel B
+
+  // Wait for initialization and calibration to finish
+  delay(500);
 }
 
 void loop() {
+  distance = sonar.ping_cm();
+  delay(75);
 
-  //Raw Values
+  disengageBrakes();
+  if (distance < 30 && distance != 0) {
+    engageBrakes();
+
+    Serial.println("The Robobitch is not moving");
+
+    if (!apds.readAmbientLight(ambient_light) || !apds.readRedLight(red_light) || !apds.readGreenLight(green_light) || !apds.readBlueLight(blue_light)) {
+      Serial.println("Error reading light values");
+    } else {  
+
+      if (apds.readAmbientLight(ambient_light) < 200) {
+        Serial.print("We see black, Ambient Value - ");
+        Serial.println(ambient_light);
+      }
+
+      else if (apds.readRedLight(red_light) > apds.readBlueLight(blue_light) && apds.readRedLight(red_light) > apds.readGreenLight(green_light)) {
+        Serial.print("We see red, Red Value - ");
+        Serial.print(red_light);
+      }
+
+      else if (apds.readGreenLight(green_light) > apds.readBlueLight(blue_light) && apds.readRedLight(red_light) < apds.readGreenLight(green_light)) {
+        Serial.print("We see green, Green Value - ");
+        Serial.print(green_light);
+      }
+
+      else if (apds.readBlueLight(blue_light) > apds.readRedLight(red_light) && apds.readBlueLight(blue_light) > apds.readGreenLight(green_light)) {
+        Serial.print("We see blue, Blue Value - ");
+        Serial.print(blue_light);
+      }
+
+      else{
+        Serial.print("We see white");
+        Serial.print(blue_light);
+      }
+      delay(200);
+    }
+  }
+
+  else if (distance == 0 || distance > 30) {
+    int currentPosition = 0;
+
+    printRawSensorValues();
+    currentPositionWeight = calculatePositionWeight();
+    currentPosition = map(currentPositionWeight, -6, 6, -120, 120);
+    printCurrentSensorWeightAndRelativePosition(currentPosition);
+    if (currentPositionWeight < -1) {
+      rightMotorSpeed = 30 - abs(currentPosition) / 2;
+      leftMotorSpeed = 30 + abs(currentPosition) / 2;
+    } else if (currentPositionWeight > 1) {
+      rightMotorSpeed = 30 + abs(currentPosition) / 2;
+      leftMotorSpeed = 30 - abs(currentPosition) / 2;
+    } else {
+      rightMotorSpeed = 100;
+      leftMotorSpeed = 100;
+    }
+
+
+
+
+    rightMotorSpeed = constrain(rightMotorSpeed, 0, 255);
+    leftMotorSpeed = constrain(leftMotorSpeed, 0, 255);
+    //Motor A forward @ full speed
+    digitalWrite(12, HIGH);           //Establishes forward direction of Channel A
+    analogWrite(3, rightMotorSpeed);  //Spins the motor on Channel A at current speed
+
+    //Motor B forward @ full speed
+    digitalWrite(13, LOW);            //Establishes forward direction of Channel B
+    analogWrite(11, leftMotorSpeed);  //Spins the motor on Channel B at current speed
+  }
+}
+
+
+void engageBrakes() {
+  digitalWrite(8, HIGH);  //Engage the Brake for Channel A
+  digitalWrite(9, HIGH);  //Engage the Brake for Channel B
+}
+
+void disengageBrakes() {
+  digitalWrite(8, LOW);  //Disengage the Brake for Channel A
+  digitalWrite(9, LOW);  //Disengage the Brake for Channel B
+}
+
+int calculatePositionWeight() {
+  lastSeenBlackLine = currentPositionWeight;
+  currentPositionWeight = ((-3) * (digitalRead(SENSOR1_PIN)) + (-2) * (digitalRead(SENSOR2_PIN)) + (-1) * (digitalRead(SENSOR3_PIN)) + (1) * (digitalRead(SENSOR4_PIN)) + (2) * (digitalRead(SENSOR5_PIN)) + (3) * (digitalRead(SENSOR6_PIN)));
+
+  if ((digitalRead(SENSOR1_PIN)) == 1 && (digitalRead(SENSOR2_PIN)) == 1 && (digitalRead(SENSOR3_PIN)) == 1 && (digitalRead(SENSOR4_PIN)) == 1 && (digitalRead(SENSOR5_PIN)) == 1 && (digitalRead(SENSOR6_PIN)) == 1) {
+    return lastSeenBlackLine;
+  } else {
+    return currentPositionWeight;
+  }
+}
+
+//DEBUG ZONE
+
+
+void printRawSensorValues(){
+    // //Raw Values for testing
+
+  Serial.println("Raw Values of sensors, in order:");
+
   Serial.print(digitalRead(SENSOR1_PIN));
   Serial.print('\t');
 
@@ -99,79 +211,26 @@ void loop() {
 
   Serial.print(digitalRead(SENSOR6_PIN));
   Serial.println('\t');
+}
 
+void printCurrentDistanceFromObsstacle (){
+  Serial.print("Current distance to the closest obstacle received from Sonar: ");
+  Serial.println(distance);
+}
 
-
-
-
-  if (digitalRead(SWITCH) == 0) {
-    engageBrakes();
-  } else {
-    int distance = sonar.ping_cm();
-    delay(75);
-    if (distance == 0) {
-      int currentPosition = 0;
-      lastSeenBlackLine = currentPositionWeight;
-      currentPositionWeight = calculatePositionWeight();
-      currentPosition = map(currentPositionWeight, -6, 6, -255, 255);
-
-      if (currentPosition < 0) {
-        rightMotorSpeed = rightMotorSpeed + currentPosition;
-        leftMotorSpeed = leftMotorSpeed - currentPosition;
-      }
-      if (currentPosition > 0) {
-        rightMotorSpeed = rightMotorSpeed - currentPosition;
-        leftMotorSpeed = leftMotorSpeed + currentPosition;
-      } else {
-        rightMotorSpeed = 255;
-        leftMotorSpeed = 255;
-      }
-
-      rightMotorSpeed = constrain(rightMotorSpeed, 0, 255);
-      leftMotorSpeed = constrain(leftMotorSpeed, 0, 255);
-      //Motor A forward @ full speed
-      digitalWrite(12, HIGH);           //Establishes forward direction of Channel A
-      analogWrite(3, rightMotorSpeed);  //Spins the motor on Channel A at current speed
-
-      //Motor B forward @ full speed
-      digitalWrite(13, HIGH);           //Establishes forward direction of Channel B
-      analogWrite(11, leftMotorSpeed);  //Spins the motor on Channel B at current speed
-    }
-
-    if (distance < 30) {
-      engageBrakes();
-
-      if (!apds.readAmbientLight(ambient_light) || !apds.readRedLight(red_light) || !apds.readGreenLight(green_light) || !apds.readBlueLight(blue_light)) {
-        Serial.println("Error reading light values");
-      } else {  //REPLACE WITH RGB LED DISPLAY INSTEAD(!)
-        Serial.print("Ambient: ");
-        Serial.print(ambient_light);
-        Serial.print(" Red: ");
-        Serial.print(red_light);
-        Serial.print(" Green: ");
-        Serial.print(green_light);
-        Serial.print(" Blue: ");
-        Serial.println(blue_light);
-      }
-    }
+void printCurrentSensorWeightAndRelativePosition (int position){
+  Serial.print("Current Sensor Weight Is: ");
+  Serial.println(currentPositionWeight);
+  Serial.print("Last Seen Black Line on: ");
+  if(lastSeenBlackLine > 0){
+     Serial.println("Right Side");
   }
-}
-
-void engageBrakes() {
-  digitalWrite(8, HIGH);  //Engage the Brake for Channel A
-  digitalWrite(9, HIGH);  //Engage the Brake for Channel B
-}
-
-void disengageBrakes() {
-  digitalWrite(8, LOW);  //Disengage the Brake for Channel A
-  digitalWrite(9, LOW);  //Disengage the Brake for Channel B
-}
-
-int calculatePositionWeight() {
-  currentPositionWeight = ((-3) * (SENSOR1_PIN) + (-2) * (SENSOR2_PIN) + (-1) * (SENSOR3_PIN) + (1) * (SENSOR4_PIN) + (2) * (SENSOR5_PIN) + (3) * (SENSOR6_PIN));
-  if (currentPositionWeight == 0) {
-    return lastSeenBlackLine;
-  } else {
-    return currentPositionWeight;
+  if(lastSeenBlackLine < 0){
+     Serial.println("Left Side");
   }
+  else{
+     Serial.println("In the middle");
+  }
+  Serial.print("Current Relative Position is: ");
+  Serial.println(position);
 }
