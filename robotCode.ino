@@ -1,23 +1,18 @@
-#include <NewPing.h>
+// #include <NewPing.h>
 #include <SparkFun_APDS9960.h>
 #include <Wire.h>
 
 // the pins for each ir sensor
-#define SENSOR1_PIN A0
-#define SENSOR2_PIN A1
-#define SENSOR3_PIN A2
-#define SENSOR4_PIN A3
-#define SENSOR5_PIN A4
-#define SENSOR6_PIN A5
+#define SENSOR1_PIN A3
+#define SENSOR2_PIN A2
+#define SENSOR3_PIN A1
+#define SENSOR4_PIN A0
+#define SENSOR5_PIN 5
+#define SENSOR6_PIN 6
 
 // Ultrasonic
 #define TRIGGER_PIN 4
-#define ECHO_PIN 10
-
-// // RGB
-// #define RGB_B 7
-// #define RGB_G 1
-// #define RGB_R 6
+#define ECHO_PIN 7
 
 //Sonar Distance
 int distance = 0;
@@ -27,11 +22,13 @@ uint16_t red_light = 0;
 uint16_t green_light = 0;
 uint16_t blue_light = 0;
 
-#define SWITCH 7  // digital switch
+#define SWITCH 1  // digital switch
+
+#define BUZZER 10
 
 #define MAX_DISTANCE 200  // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
 
-NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);  // NewPing setup of pins and maximum distance.
+// NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);  // NewPing setup of pins and maximum distance.
 SparkFun_APDS9960 apds = SparkFun_APDS9960();
 
 const uint8_t SensorCount = 6;
@@ -46,6 +43,8 @@ void setup() {
 
   Serial.begin(9600);
   Serial.println("Starting Setup: ");
+
+  pinMode(SWITCH, INPUT);
 
   if (apds.init()) {
     Serial.println(F("APDS-9960 initialization complete"));
@@ -90,77 +89,77 @@ void setup() {
 }
 
 void loop() {
-  distance = sonar.ping_cm();
+  // distance = sonar.ping_cm();
   delay(75);
-
   disengageBrakes();
-  if (distance < 30 && distance != 0) {
+  if (digitalRead(SWITCH) == HIGH) {
     engageBrakes();
+  } else {
 
-    Serial.println("The Robobitch is not moving");
 
-    if (!apds.readAmbientLight(ambient_light) || !apds.readRedLight(red_light) || !apds.readGreenLight(green_light) || !apds.readBlueLight(blue_light)) {
-      Serial.println("Error reading light values");
-    } else {  
+    if ((distance < 30 && distance != 0)) {
+      engageBrakes();
 
-      if (apds.readAmbientLight(ambient_light) < 200) {
-        Serial.print("We see black, Ambient Value - ");
-        Serial.println(ambient_light);
+      Serial.println("The Robobitch is not moving");
+
+      if (!apds.readAmbientLight(ambient_light) || !apds.readRedLight(red_light) || !apds.readGreenLight(green_light) || !apds.readBlueLight(blue_light)) {
+        Serial.println("Error reading light values");
+      } else {
+
+        if (apds.readAmbientLight(ambient_light) < 200) {
+          black();
+        }
+
+        else if (apds.readRedLight(red_light) > apds.readBlueLight(blue_light) && apds.readRedLight(red_light) > apds.readGreenLight(green_light)) {
+          red();
+        }
+
+        else if (apds.readGreenLight(green_light) > apds.readBlueLight(blue_light) && apds.readRedLight(red_light) < apds.readGreenLight(green_light)) {
+          green();
+        }
+
+        else if (apds.readBlueLight(blue_light) > apds.readRedLight(red_light) && apds.readBlueLight(blue_light) > apds.readGreenLight(green_light)) {
+          blue();
+        }
+
+        else {
+          white();
+        }
+        delay(200);
       }
-
-      else if (apds.readRedLight(red_light) > apds.readBlueLight(blue_light) && apds.readRedLight(red_light) > apds.readGreenLight(green_light)) {
-        Serial.print("We see red, Red Value - ");
-        Serial.print(red_light);
-      }
-
-      else if (apds.readGreenLight(green_light) > apds.readBlueLight(blue_light) && apds.readRedLight(red_light) < apds.readGreenLight(green_light)) {
-        Serial.print("We see green, Green Value - ");
-        Serial.print(green_light);
-      }
-
-      else if (apds.readBlueLight(blue_light) > apds.readRedLight(red_light) && apds.readBlueLight(blue_light) > apds.readGreenLight(green_light)) {
-        Serial.print("We see blue, Blue Value - ");
-        Serial.print(blue_light);
-      }
-
-      else{
-        Serial.print("We see white");
-        Serial.print(blue_light);
-      }
-      delay(200);
-    }
-  }
-
-  else if (distance == 0 || distance > 30) {
-    int currentPosition = 0;
-
-    printRawSensorValues();
-    currentPositionWeight = calculatePositionWeight();
-    currentPosition = map(currentPositionWeight, -6, 6, -120, 120);
-    printCurrentSensorWeightAndRelativePosition(currentPosition);
-    if (currentPositionWeight < -1) {
-      rightMotorSpeed = 30 - abs(currentPosition) / 2;
-      leftMotorSpeed = 30 + abs(currentPosition) / 2;
-    } else if (currentPositionWeight > 1) {
-      rightMotorSpeed = 30 + abs(currentPosition) / 2;
-      leftMotorSpeed = 30 - abs(currentPosition) / 2;
-    } else {
-      rightMotorSpeed = 100;
-      leftMotorSpeed = 100;
     }
 
+    else if (distance == 0 || distance > 30) {
+      int currentPosition = 0;
+
+      printRawSensorValues();
+      currentPositionWeight = calculatePositionWeight();
+      currentPosition = map(currentPositionWeight, -6, 6, -120, 120);
+      printCurrentSensorWeightAndRelativePosition(currentPosition);
+      if (currentPositionWeight < -1) {
+        rightMotorSpeed = 30 - abs(currentPosition) / 2;
+        leftMotorSpeed = 30 + abs(currentPosition) / 2;
+      } else if (currentPositionWeight > 1) {
+        rightMotorSpeed = 30 + abs(currentPosition) / 2;
+        leftMotorSpeed = 30 - abs(currentPosition) / 2;
+      } else {
+        rightMotorSpeed = 100;
+        leftMotorSpeed = 100;
+      }
 
 
 
-    rightMotorSpeed = constrain(rightMotorSpeed, 0, 255);
-    leftMotorSpeed = constrain(leftMotorSpeed, 0, 255);
-    //Motor A forward @ full speed
-    digitalWrite(12, HIGH);           //Establishes forward direction of Channel A
-    analogWrite(3, rightMotorSpeed);  //Spins the motor on Channel A at current speed
 
-    //Motor B forward @ full speed
-    digitalWrite(13, LOW);            //Establishes forward direction of Channel B
-    analogWrite(11, leftMotorSpeed);  //Spins the motor on Channel B at current speed
+      rightMotorSpeed = constrain(rightMotorSpeed, 0, 255);
+      leftMotorSpeed = constrain(leftMotorSpeed, 0, 255);
+      //Motor A forward @ full speed
+      digitalWrite(12, HIGH);           //Establishes forward direction of Channel A
+      analogWrite(3, rightMotorSpeed);  //Spins the motor on Channel A at current speed
+
+      //Motor B forward @ full speed
+      digitalWrite(13, LOW);            //Establishes forward direction of Channel B
+      analogWrite(11, leftMotorSpeed);  //Spins the motor on Channel B at current speed
+    }
   }
 }
 
@@ -186,11 +185,100 @@ int calculatePositionWeight() {
   }
 }
 
+void white() {
+  for (int i = 0; i < 3; i++) {
+    tone(BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(400);
+    tone(BUZZER, 450);
+    delay(700);
+    noTone(BUZZER);
+    delay(400);
+    tone(BUZZER, 450);
+    delay(700);
+    noTone(BUZZER);
+    delay(3000);
+  }
+}
+
+void black() {
+  for (int i = 0; i < 3; i++) {
+    tone(BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(400);
+    tone(BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(400);
+    tone(BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(2000);
+  }
+}
+
+void green() {
+  for (int i = 0; i < 3; i++) {
+    tone(BUZZER, 450);
+    delay(700);
+    noTone(BUZZER);
+    delay(400);
+    tone(BUZZER, 450);
+    delay(700);
+    noTone(BUZZER);
+    delay(400);
+    tone(BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(2000);
+  }
+}
+
+void blue() {
+  for (int i = 0; i < 3; i++) {
+    tone(BUZZER, 450);
+    delay(700);
+    noTone(BUZZER);
+    delay(400);
+    tone(BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(400);
+    tone(BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(400);
+    tone(BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(2000);
+  }
+}
+
+void red() {
+  for (int i = 0; i < 3; i++) {
+    tone(BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(400);
+    tone(BUZZER, 450);
+    delay(700);
+    noTone(BUZZER);
+    delay(400);
+    tone(BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(2000);
+  }
+}
+
 //DEBUG ZONE
 
 
-void printRawSensorValues(){
-    // //Raw Values for testing
+void printRawSensorValues() {
+  // //Raw Values for testing
 
   Serial.println("Raw Values of sensors, in order:");
 
@@ -213,23 +301,22 @@ void printRawSensorValues(){
   Serial.println('\t');
 }
 
-void printCurrentDistanceFromObsstacle (){
+void printCurrentDistanceFromObsstacle() {
   Serial.print("Current distance to the closest obstacle received from Sonar: ");
   Serial.println(distance);
 }
 
-void printCurrentSensorWeightAndRelativePosition (int position){
+void printCurrentSensorWeightAndRelativePosition(int position) {
   Serial.print("Current Sensor Weight Is: ");
   Serial.println(currentPositionWeight);
   Serial.print("Last Seen Black Line on: ");
-  if(lastSeenBlackLine > 0){
-     Serial.println("Right Side");
+  if (lastSeenBlackLine > 0) {
+    Serial.println("Right Side");
   }
-  if(lastSeenBlackLine < 0){
-     Serial.println("Left Side");
-  }
-  else{
-     Serial.println("In the middle");
+  if (lastSeenBlackLine < 0) {
+    Serial.println("Left Side");
+  } else {
+    Serial.println("In the middle");
   }
   Serial.print("Current Relative Position is: ");
   Serial.println(position);
