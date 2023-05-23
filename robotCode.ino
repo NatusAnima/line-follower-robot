@@ -1,4 +1,4 @@
-// #include <NewPing.h>
+#include <NewPing.h>
 #include <SparkFun_APDS9960.h>
 #include <Wire.h>
 
@@ -14,6 +14,8 @@
 #define TRIGGER_PIN 4
 #define ECHO_PIN 7
 
+#define BUZZER 10
+
 //Sonar Distance
 int distance = 0;
 
@@ -24,11 +26,9 @@ uint16_t blue_light = 0;
 
 #define SWITCH 1  // digital switch
 
-#define BUZZER 10
-
 #define MAX_DISTANCE 200  // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
 
-// NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);  // NewPing setup of pins and maximum distance.
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);  // NewPing setup of pins and maximum distance.
 SparkFun_APDS9960 apds = SparkFun_APDS9960();
 
 const uint8_t SensorCount = 6;
@@ -43,8 +43,6 @@ void setup() {
 
   Serial.begin(9600);
   Serial.println("Starting Setup: ");
-
-  pinMode(SWITCH, INPUT);
 
   if (apds.init()) {
     Serial.println(F("APDS-9960 initialization complete"));
@@ -89,15 +87,11 @@ void setup() {
 }
 
 void loop() {
-  // distance = sonar.ping_cm();
+  distance = sonar.ping_cm();
   delay(75);
-  disengageBrakes();
   if (digitalRead(SWITCH) == HIGH) {
-    engageBrakes();
-  } else {
-
-
-    if ((distance < 30 && distance != 0)) {
+    disengageBrakes();
+    if (distance < 30 && distance != 0) {
       engageBrakes();
 
       Serial.println("The Robobitch is not moving");
@@ -107,22 +101,31 @@ void loop() {
       } else {
 
         if (apds.readAmbientLight(ambient_light) < 200) {
+          Serial.print("We see black, Ambient Value - ");
+          Serial.println(ambient_light);
           black();
         }
 
         else if (apds.readRedLight(red_light) > apds.readBlueLight(blue_light) && apds.readRedLight(red_light) > apds.readGreenLight(green_light)) {
+          Serial.print("We see red, Red Value - ");
+          Serial.print(red_light);
           red();
         }
 
         else if (apds.readGreenLight(green_light) > apds.readBlueLight(blue_light) && apds.readRedLight(red_light) < apds.readGreenLight(green_light)) {
+          Serial.print("We see green, Green Value - ");
+          Serial.print(green_light);
           green();
         }
 
         else if (apds.readBlueLight(blue_light) > apds.readRedLight(red_light) && apds.readBlueLight(blue_light) > apds.readGreenLight(green_light)) {
+          Serial.print("We see blue, Blue Value - ");
+          Serial.print(blue_light);
           blue();
         }
 
         else {
+          Serial.print("We see white");
           white();
         }
         delay(200);
@@ -185,95 +188,6 @@ int calculatePositionWeight() {
   }
 }
 
-void white() {
-  for (int i = 0; i < 3; i++) {
-    tone(BUZZER, 450);
-    delay(200);
-    noTone(BUZZER);
-    delay(400);
-    tone(BUZZER, 450);
-    delay(700);
-    noTone(BUZZER);
-    delay(400);
-    tone(BUZZER, 450);
-    delay(700);
-    noTone(BUZZER);
-    delay(3000);
-  }
-}
-
-void black() {
-  for (int i = 0; i < 3; i++) {
-    tone(BUZZER, 450);
-    delay(200);
-    noTone(BUZZER);
-    delay(400);
-    tone(BUZZER, 450);
-    delay(200);
-    noTone(BUZZER);
-    delay(400);
-    tone(BUZZER, 450);
-    delay(200);
-    noTone(BUZZER);
-    delay(2000);
-  }
-}
-
-void green() {
-  for (int i = 0; i < 3; i++) {
-    tone(BUZZER, 450);
-    delay(700);
-    noTone(BUZZER);
-    delay(400);
-    tone(BUZZER, 450);
-    delay(700);
-    noTone(BUZZER);
-    delay(400);
-    tone(BUZZER, 450);
-    delay(200);
-    noTone(BUZZER);
-    delay(2000);
-  }
-}
-
-void blue() {
-  for (int i = 0; i < 3; i++) {
-    tone(BUZZER, 450);
-    delay(700);
-    noTone(BUZZER);
-    delay(400);
-    tone(BUZZER, 450);
-    delay(200);
-    noTone(BUZZER);
-    delay(400);
-    tone(BUZZER, 450);
-    delay(200);
-    noTone(BUZZER);
-    delay(400);
-    tone(BUZZER, 450);
-    delay(200);
-    noTone(BUZZER);
-    delay(2000);
-  }
-}
-
-void red() {
-  for (int i = 0; i < 3; i++) {
-    tone(BUZZER, 450);
-    delay(200);
-    noTone(BUZZER);
-    delay(400);
-    tone(BUZZER, 450);
-    delay(700);
-    noTone(BUZZER);
-    delay(400);
-    tone(BUZZER, 450);
-    delay(200);
-    noTone(BUZZER);
-    delay(2000);
-  }
-}
-
 //DEBUG ZONE
 
 
@@ -320,4 +234,104 @@ void printCurrentSensorWeightAndRelativePosition(int position) {
   }
   Serial.print("Current Relative Position is: ");
   Serial.println(position);
+}
+
+
+void white()
+{
+  for (int i=0; i<3; i++)
+  {
+    tone(BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(400);
+    tone (BUZZER, 450);
+    delay(700);
+    noTone(BUZZER);
+    delay(400);
+    tone (BUZZER, 450);
+    delay(700);
+    noTone(BUZZER);
+    delay(3000);
+  }
+}
+
+void black()
+{
+  for (int i=0; i<3; i++)
+  { 
+    tone (BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(400);
+    tone (BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(400);
+    tone (BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(2000);
+  }
+}
+
+void green()
+{
+  for (int i=0; i<3; i++)
+  { 
+    tone (BUZZER, 450);
+    delay(700);
+    noTone(BUZZER);
+    delay(400);
+    tone (BUZZER, 450);
+    delay(700);
+    noTone(BUZZER);
+    delay(400);
+    tone (BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(2000);
+  }
+}
+
+void blue()
+{
+  for (int i=0; i<3; i++)
+  { 
+    tone (BUZZER, 450);
+    delay(700);
+    noTone(BUZZER);
+    delay(400);
+    tone (BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(400);
+    tone (BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(400);
+    tone (BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(2000);
+  }
+}
+
+void red()
+{
+  for (int i=0; i<3; i++)
+  { 
+    tone (BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(400);
+    tone (BUZZER, 450);
+    delay(700);
+    noTone(BUZZER);
+    delay(400);
+    tone (BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(2000);
+  }
 }
