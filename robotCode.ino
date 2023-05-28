@@ -60,6 +60,8 @@ void setup() {
   //Switch
   pinMode(SWITCH, INPUT);
 
+  digitalWrite(SWITCH, LOW);
+
 
   //
   pinMode(SENSOR1_PIN, INPUT);
@@ -89,6 +91,9 @@ void setup() {
 void loop() {
   distance = sonar.ping_cm();
   delay(75);
+  Serial.println(distance);
+  delay(200);
+  engageBrakes();
   if (digitalRead(SWITCH) == HIGH) {
     disengageBrakes();
     if (distance < 30 && distance != 0) {
@@ -96,38 +101,49 @@ void loop() {
 
       Serial.println("The Robobitch is not moving");
 
+      int r = red_light;
+      int b = blue_light;
+      int g = green_light;
+      int a = ambient_light;
+
+      Serial.println(r);
+      Serial.println(b);
+      Serial.println(g);
+      Serial.println(a);
+
       if (!apds.readAmbientLight(ambient_light) || !apds.readRedLight(red_light) || !apds.readGreenLight(green_light) || !apds.readBlueLight(blue_light)) {
         Serial.println("Error reading light values");
       } else {
 
-        if (apds.readAmbientLight(ambient_light) < 200) {
+        if (a > 300) {
+          Serial.print("We see white");
+          white();
+        }
+
+        else if (a < 200 && r < 100 && b < 100 && g < 100) {
           Serial.print("We see black, Ambient Value - ");
           Serial.println(ambient_light);
           black();
         }
 
-        else if (apds.readRedLight(red_light) > apds.readBlueLight(blue_light) && apds.readRedLight(red_light) > apds.readGreenLight(green_light)) {
+        else if (r > b && r > g) {
           Serial.print("We see red, Red Value - ");
           Serial.print(red_light);
           red();
         }
 
-        else if (apds.readGreenLight(green_light) > apds.readBlueLight(blue_light) && apds.readRedLight(red_light) < apds.readGreenLight(green_light)) {
+        else if (g > b && r < g) {
           Serial.print("We see green, Green Value - ");
           Serial.print(green_light);
           green();
         }
 
-        else if (apds.readBlueLight(blue_light) > apds.readRedLight(red_light) && apds.readBlueLight(blue_light) > apds.readGreenLight(green_light)) {
+        else if (b > r && b > g) {
           Serial.print("We see blue, Blue Value - ");
           Serial.print(blue_light);
           blue();
         }
 
-        else {
-          Serial.print("We see white");
-          white();
-        }
         delay(200);
       }
     }
@@ -237,99 +253,89 @@ void printCurrentSensorWeightAndRelativePosition(int position) {
 }
 
 
-void white()
-{
-  for (int i=0; i<3; i++)
-  {
+void white() {
+  for (int i = 0; i < 1; i++) {
     tone(BUZZER, 450);
     delay(200);
     noTone(BUZZER);
     delay(400);
-    tone (BUZZER, 450);
+    tone(BUZZER, 450);
     delay(700);
     noTone(BUZZER);
     delay(400);
-    tone (BUZZER, 450);
+    tone(BUZZER, 450);
     delay(700);
     noTone(BUZZER);
     delay(3000);
   }
 }
 
-void black()
-{
-  for (int i=0; i<3; i++)
-  { 
-    tone (BUZZER, 450);
+void black() {
+  for (int i = 0; i < 1; i++) {
+    tone(BUZZER, 450);
     delay(200);
     noTone(BUZZER);
     delay(400);
-    tone (BUZZER, 450);
+    tone(BUZZER, 450);
     delay(200);
     noTone(BUZZER);
     delay(400);
-    tone (BUZZER, 450);
-    delay(200);
-    noTone(BUZZER);
-    delay(2000);
-  }
-}
-
-void green()
-{
-  for (int i=0; i<3; i++)
-  { 
-    tone (BUZZER, 450);
-    delay(700);
-    noTone(BUZZER);
-    delay(400);
-    tone (BUZZER, 450);
-    delay(700);
-    noTone(BUZZER);
-    delay(400);
-    tone (BUZZER, 450);
+    tone(BUZZER, 450);
     delay(200);
     noTone(BUZZER);
     delay(2000);
   }
 }
 
-void blue()
-{
-  for (int i=0; i<3; i++)
-  { 
-    tone (BUZZER, 450);
+void green() {
+  for (int i = 0; i < 1; i++) {
+    tone(BUZZER, 450);
     delay(700);
     noTone(BUZZER);
     delay(400);
-    tone (BUZZER, 450);
-    delay(200);
+    tone(BUZZER, 450);
+    delay(700);
     noTone(BUZZER);
     delay(400);
-    tone (BUZZER, 450);
-    delay(200);
-    noTone(BUZZER);
-    delay(400);
-    tone (BUZZER, 450);
+    tone(BUZZER, 450);
     delay(200);
     noTone(BUZZER);
     delay(2000);
   }
 }
 
-void red()
-{
-  for (int i=0; i<3; i++)
-  { 
-    tone (BUZZER, 450);
-    delay(200);
-    noTone(BUZZER);
-    delay(400);
-    tone (BUZZER, 450);
+void blue() {
+  for (int i = 0; i < 1; i++) {
+    tone(BUZZER, 450);
     delay(700);
     noTone(BUZZER);
     delay(400);
-    tone (BUZZER, 450);
+    tone(BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(400);
+    tone(BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(400);
+    tone(BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(2000);
+  }
+}
+
+void red() {
+  for (int i = 0; i < 1; i++) {
+    tone(BUZZER, 450);
+    delay(200);
+    noTone(BUZZER);
+    delay(400);
+    tone(BUZZER, 450);
+    delay(700);
+    noTone(BUZZER);
+    delay(400);
+    tone(BUZZER, 450);
     delay(200);
     noTone(BUZZER);
     delay(2000);
